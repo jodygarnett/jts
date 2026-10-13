@@ -21,6 +21,7 @@ import org.locationtech.jts.geom.Point;
 import org.locationtech.jts.geom.Polygon;
 import org.locationtech.jts.io.ParseException;
 
+import javax.xml.XMLConstants;
 import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
 import javax.xml.stream.XMLStreamReader;
@@ -34,6 +35,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -42,6 +45,8 @@ import java.util.regex.Pattern;
  * Works only with KML geometry elements and may also parse attributes within these elements
  */
 public class KMLReader {
+    private static final Logger LOGGER = Logger.getLogger(KMLReader.class.getName());
+
     private final XMLInputFactory inputFactory = XMLInputFactory.newInstance();
     private final GeometryFactory geometryFactory;
     private final Set<String> attributeNames;
@@ -97,10 +102,22 @@ public class KMLReader {
         this.attributeNames = attributeNames == null
                 ? Collections.emptySet()
                 : new HashSet<>(attributeNames);
-        // Disable DTDs completely (prevents DOCTYPE declarations)
-        inputFactory.setProperty(XMLInputFactory.SUPPORT_DTD, false);
-        // Prevent external entity expansion from DTDs
-        inputFactory.setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+        // KML does not require DOCTYPE
+        setProperty(XMLInputFactory.SUPPORT_DTD, false);
+        setProperty(XMLInputFactory.IS_SUPPORTING_EXTERNAL_ENTITIES, false);
+        setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+        setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+        inputFactory.setXMLResolver((publicID, systemID, baseURI, namespace) -> {
+            throw new XMLStreamException("External entity resolution is not allowed: " + systemID);
+        });
+    }
+
+    private void setProperty(String name, Object value) {
+        try {
+            inputFactory.setProperty(name, value);
+        } catch (IllegalArgumentException e) {
+            LOGGER.log(Level.FINE, "Property " + name + " not supported by " + inputFactory.getClass().getName());
+        }
     }
 
     /**

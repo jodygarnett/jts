@@ -22,6 +22,16 @@ public class GMLReaderTest extends GeometryTestCase {
 
   public GMLReaderTest(String name) { super(name); }
 
+  public void testDoctypeNotSupported() throws IOException, ParserConfigurationException {
+    try {
+      new GMLReader().read("<!DOCTYPE Point>"
+          + "<gml:Point><gml:coordinates>45.67,88.56</gml:coordinates></gml:Point>", geometryFactory);
+      fail("DOCTYPE is not supported");
+    }
+    catch (SAXException expected) {
+    }
+  }
+
   public void testPoint() {
     checkRead("<gml:Point>"
         + "    <gml:coordinates>45.67,88.56</gml:coordinates>"

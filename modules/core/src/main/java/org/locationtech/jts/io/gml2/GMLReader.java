@@ -14,7 +14,10 @@ package org.locationtech.jts.io.gml2;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
@@ -25,6 +28,8 @@ import org.locationtech.jts.geom.GeometryFactory;
 import org.locationtech.jts.geom.PrecisionModel;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXNotRecognizedException;
+import org.xml.sax.SAXNotSupportedException;
 import org.xml.sax.helpers.DefaultHandler;
 
 
@@ -69,6 +74,7 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 public class GMLReader 
 {
+	private static final Logger LOGGER = Logger.getLogger(GMLReader.class.getName());
 
 	/**
 	 * Reads a GML2 Geometry from a <tt>String</tt> into a single {@link Geometry}
@@ -105,16 +111,46 @@ public class GMLReader
 
 		fact.setNamespaceAware(false);
 		fact.setValidating(false);
+		// GML does not require DOCTYPE
+		setFeature(fact, XMLConstants.FEATURE_SECURE_PROCESSING, true);
+		setFeature(fact, "http://apache.org/xml/features/disallow-doctype-decl", true);
+		setFeature(fact, "http://xml.org/sax/features/external-general-entities", false);
+		setFeature(fact, "http://xml.org/sax/features/external-parameter-entities", false);
+		setFeature(fact, "http://apache.org/xml/features/nonvalidating/load-external-dtd", false);
+		try {
+			fact.setXIncludeAware(false);
+		} catch (UnsupportedOperationException e) {
+			LOGGER.log(Level.FINE, "XInclude setting not supported by " + fact.getClass().getName());
+		}
 
 		SAXParser parser = fact.newSAXParser();
+		try {
+			parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+			parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
+		} catch (SAXNotRecognizedException | SAXNotSupportedException e) {
+			LOGGER.log(Level.FINE, "External access properties not supported by " + parser.getClass().getName());
+		}
 
 		if(geometryFactory == null)
 			geometryFactory = new GeometryFactory();
 
-		GMLHandler gh = new GMLHandler(geometryFactory,null);
+		GMLHandler gh = new GMLHandler(geometryFactory,null) {
+			@Override
+			public InputSource resolveEntity(String publicId, String systemId) throws SAXException {
+				throw new SAXException("External entity resolution is not allowed: " + systemId);
+			}
+		};
 		parser.parse(new InputSource(reader), (DefaultHandler)gh);
 
 		return gh.getGeometry();
+	}
+
+	private static void setFeature(SAXParserFactory fact, String feature, boolean value) {
+		try {
+			fact.setFeature(feature, value);
+		} catch (ParserConfigurationException | SAXNotRecognizedException | SAXNotSupportedException e) {
+			LOGGER.log(Level.FINE, "Feature " + feature + " not supported by " + fact.getClass().getName());
+		}
 	}
 
 }
