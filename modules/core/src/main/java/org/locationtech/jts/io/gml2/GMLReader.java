@@ -14,8 +14,6 @@ package org.locationtech.jts.io.gml2;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 
 import javax.xml.XMLConstants;
 import javax.xml.parsers.ParserConfigurationException;
@@ -74,7 +72,6 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 public class GMLReader 
 {
-	private static final Logger LOGGER = Logger.getLogger(GMLReader.class.getName());
 
 	/**
 	 * Reads a GML2 Geometry from a <tt>String</tt> into a single {@link Geometry}
@@ -120,7 +117,7 @@ public class GMLReader
 		try {
 			fact.setXIncludeAware(false);
 		} catch (UnsupportedOperationException e) {
-			LOGGER.log(Level.FINE, "XInclude setting not supported by " + fact.getClass().getName());
+			// not supported by this parser
 		}
 
 		SAXParser parser = fact.newSAXParser();
@@ -128,7 +125,7 @@ public class GMLReader
 			parser.setProperty(XMLConstants.ACCESS_EXTERNAL_DTD, "");
 			parser.setProperty(XMLConstants.ACCESS_EXTERNAL_SCHEMA, "");
 		} catch (SAXNotRecognizedException | SAXNotSupportedException e) {
-			LOGGER.log(Level.FINE, "External access properties not supported by " + parser.getClass().getName());
+			// not supported by this parser
 		}
 
 		if(geometryFactory == null)
@@ -149,7 +146,7 @@ public class GMLReader
 		try {
 			fact.setFeature(feature, value);
 		} catch (ParserConfigurationException | SAXNotRecognizedException | SAXNotSupportedException e) {
-			LOGGER.log(Level.FINE, "Feature " + feature + " not supported by " + fact.getClass().getName());
+			// not supported by this parser
 		}
 	}
 

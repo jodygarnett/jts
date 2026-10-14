@@ -35,8 +35,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -45,8 +43,6 @@ import java.util.regex.Pattern;
  * Works only with KML geometry elements and may also parse attributes within these elements
  */
 public class KMLReader {
-    private static final Logger LOGGER = Logger.getLogger(KMLReader.class.getName());
-
     private final XMLInputFactory inputFactory = XMLInputFactory.newInstance();
     private final GeometryFactory geometryFactory;
     private final Set<String> attributeNames;
@@ -113,10 +109,8 @@ public class KMLReader {
     }
 
     private void setProperty(String name, Object value) {
-        try {
+        if (inputFactory.isPropertySupported(name)) {
             inputFactory.setProperty(name, value);
-        } catch (IllegalArgumentException e) {
-            LOGGER.log(Level.FINE, "Property " + name + " not supported by " + inputFactory.getClass().getName());
         }
     }
 
